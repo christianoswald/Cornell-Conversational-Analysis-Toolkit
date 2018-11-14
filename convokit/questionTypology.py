@@ -967,12 +967,6 @@ class MotifsExtractor:
             arcs.update(MotifsExtractor.get_arcs(conj_elem, follow_conj))
         return arcs
 
-    def is_question(span):
-        """
-            True if the sentence in span is a question
-        """
-        span_text = span.text.strip()
-        return span_text[-1] == '?'
 
     def is_utterance_question(text):
         """True if text is a question
@@ -1004,7 +998,7 @@ class MotifsExtractor:
                 print('\t%03d' % idx)
             spacy_obj = spacy_dict[text_idx]
             for span_idx, span in enumerate(spacy_obj.sents):
-                if use_span(span):
+                if use_span(span.text):
                     curr_arcset = MotifsExtractor.get_arcs(span.root, follow_conj)
                     arc_entries.append({'idx': '%s%s%d' % (text_idx, span_delim, span_idx), 'arcs': list(curr_arcset),
                         'pair_idx': '%s%s%d' % (pair_idx, span_delim, span_idx)})
@@ -1014,23 +1008,13 @@ class MotifsExtractor:
             f.write('\n'.join(json.dumps(arc_entry) for arc_entry in arc_entries))
 
 
-    def is_uppercase_question(x):
-        """
-            for reasonably well-formatted datasets like transcripts of some proceedings,
-            i've included this filter that questions start w/ uppercase and end in a question mark.
-            this filter can be varied/swapped out.
-        """
-        text = x.text.strip()
-        return (text[-1] == '?') and (text[0].isupper())
-
     def is_uppercase(x):
         """
             mainly because we otherwise get a bunch of badly parsed half-lines,
             enforce that answer sentences have to start in uppercase (reliable
             provided your data is well-formatted...)
         """
-        text = x.text.strip()
-        return text[0].isupper()
+        return x.strip()[0].isupper()
 
 
     def extract_question_motifs(question_text_iter, spacy_filename, motif_dir,
