@@ -11,7 +11,7 @@ KeyConvoRoot = "root"
 KeyReplyTo = "reply-to"
 KeyTimestamp = "timestamp"
 KeyText = "text"
-KeyUserInfo = "user-info"
+KeyUserInfo = "meta"
 
 genders = {}
 edit_counts = {}
@@ -31,6 +31,7 @@ with open("wikipedia.talkpages.admins.txt", "r", encoding="utf-8") as f:
         admins[name] = time.mktime(
             datetime.datetime.strptime(date.strip(), "%Y-%m-%d").timetuple())
 
+users_meta = {}
 uniq_admins = set()
 usernames = set()
 usernames_cased = set()
@@ -56,6 +57,17 @@ with open("wikipedia.talkpages.conversations.dat", "r", encoding="utf-8") as f:
                     #user += "{admin}"
                     uniq_admins.add(user)
 
+                is_admin_glob = is_admin
+                if user in users_meta and users_meta[user]["is-admin"]:
+                    is_admin_glob = True
+                    
+                users_meta[user] = {
+                    "is-admin": is_admin_glob,
+                    "gender": gender[user] if user in gender else "unknown",
+                    "edit-count": edit_counts[user] if user in \
+                            edit_counts else "unknown"
+                }
+
                 d = {
                     KeyId: fields[0],
                     KeyUser: user,
@@ -63,10 +75,7 @@ with open("wikipedia.talkpages.conversations.dat", "r", encoding="utf-8") as f:
                     KeyTimestamp: timestamp,
                     KeyText: fields[7],
                     KeyUserInfo: {
-                        "is-admin": is_admin,
-                        "gender": gender[user] if user in gender else "unknown",
-                        "user-edit-count": edit_counts[user] if user in \
-                                edit_counts else "unknown"
+                        "is-admin": is_admin
                     }
                 }
                 fields[4] = fields[4].strip()
@@ -103,8 +112,11 @@ if MaxUtterances > 0:
     #import random
     #random.shuffle(utterances)
     utterances = utterances[-MaxUtterances:]
-json.dump(utterances, open("full.json", "w"), indent=2,
+json.dump(utterances, open("utterances.json", "w"), indent=2,
           sort_keys=True)
+
+with open("users.json", "w") as f:
+    json.dump(users_meta, f, indent=2)
 
 print(len(uniq_admins), "admins")
 print(unrecoverable_replytos, "unrecovered reply-tos")

@@ -5,10 +5,10 @@ import os
 
 location = os.getcwd()
 subs_dict = {}
-for file in os.listdir(location+'/reddit-data'):
+for file in os.listdir(os.path.join(location, 'reddit-data')):
     print(file)
     if file.endswith(".jsonlist"):
-        with open('reddit-data/'+file, encoding="latin") as f:
+        with open(os.path.join(location, 'reddit-data', file), encoding="latin") as f:
             subs_dict[file[:-9]] = []
             for line in f:
                 try:
@@ -19,7 +19,7 @@ for file in os.listdir(location+'/reddit-data'):
                 # remove duplicates
                 #if line_json not in subs_dict[file[:-9]]:
                 subs_dict[file[:-9]].append(line_json) 
-                if len(subs_dict[file[:-9]]) == 100: break
+                #if len(subs_dict[file[:-9]]) == 100: break
 
 #deleted_idx = 0
 def proc_author(s, root_id):
@@ -46,14 +46,14 @@ def del_dups(convos):
     Returns: Deduplicated list"""
     ids = set()
     unique = []
-    for x in convos: 
+    for x in convos:
         if x['id'] not in ids:
             ids.add(x['id'])
             unique.append(x)
     return unique
 
 MIN_THREAD_LENGTH = 10
-N_THREADS_PER_SUBREDDIT = 100
+N_THREADS_PER_SUBREDDIT = 500
 
 ##create new json list
 print("creating dataset")
@@ -133,5 +133,5 @@ for subreddit in list(subs_dict.keys()):
 reddit_convos = del_dups(reddit_convos)
 reddit_convos = [d for d in reddit_convos if "text" in d]
 
-with open('reddit-convos-small.json', 'w') as fp:
+with open('reddit-convos.json', 'w') as fp:
     json.dump(reddit_convos, fp, indent=2)

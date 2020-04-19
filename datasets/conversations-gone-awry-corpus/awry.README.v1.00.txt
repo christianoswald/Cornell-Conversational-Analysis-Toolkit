@@ -35,6 +35,7 @@ human annotation info includes:
 
 This data was collected from late 2017 to early 2018 and was annotated in April 2018.
 
+The dataset can be downloaded using the convokit.download() helper function: convokit.download("conversations-gone-awry-corpus"). Alternatively you can access it directly here: http://zissou.infosci.cornell.edu/socialkit/datasets/conversations-gone-awry-corpus/paired_conversations.json.
 
 B) Files description
 

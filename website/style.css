@@ -32,9 +32,9 @@ h2 {
 
 h1 { font-size: 52.8px; }
 h2 { font-size: 43.2px; }
-h3, article h1 { font-size: 36px; }
-h4, article h2 { font-size: 28.8px; }
-h5, article h3 { font-size: 21.6px; }
+h3, article h1 { font-size: 28px; }
+h4, article h2 { font-size: 20px; }
+h5, article h3 { font-size: 18px; }
 h6 { font-size: 16.8px; }
 
 header {

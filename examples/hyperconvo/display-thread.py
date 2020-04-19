@@ -1,9 +1,9 @@
 import sys
 import convokit
-from collections import defaultdict
 
-corpus = convokit.Corpus(filename=convokit.download("reddit-corpus"))
-threads = corpus.utterance_threads(prefix_len=10)
+corpus = convokit.Corpus(filename=convokit.download("subreddit-Cornell"))
+print(corpus.meta)
+threads = corpus.utterance_threads(prefix_len=10, include_root=False)
 
 def disp(thread, root, indent=0):
     print(" "*indent + thread[root].user.name + ": " +
@@ -19,7 +19,7 @@ if len(sys.argv) > 1:
         print()
 else:
     while True:
-        print("Enter thread root ID [t1_XXX]: ", end="")
+        print("Enter thread root ID (e.g. {}): ".format(next(iter(threads))), end="")
         root = input()
         print("--- {} ---".format(root))
         disp(threads[root], root)
