@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, classification_report
 import pandas as pd
-from scipy.sparse import vstack
+from scipy.sparse import vstack, issparse
 from .classifier import Classifier
 import numpy as np
 from .util import extract_feats_and_label_bow
@@ -19,7 +19,7 @@ class BoWClassifier(Classifier):
 
     Inherits from `Classifier` and has access to its methods.
 
-    :param obj_type: "user", "utterance", or "conversation"
+    :param obj_type: "speaker", "utterance", or "conversation"
     :param vector_name: the metadata key where the Corpus object text vector is stored
     :param labeller: a (lambda) function that takes a Corpus object and returns True (y=1) or False (y=0) - i.e. labeller defines the y value of the object for fitting
     :param clf: a sklearn Classifier. By default, clf is a Pipeline with StandardScaler and LogisticRegression
@@ -52,7 +52,10 @@ class BoWClassifier(Classifier):
         for obj in corpus.iter_objs(self.obj_type, selector):
             X.append(obj.meta[self.vector_name])
             y.append(self.labeller(obj))
-        X = vstack(X)
+        if issparse(X[0]): # for csr_matrix
+            X = vstack(X)
+        else: # for non-compressed numpy arrays
+            X = np.vstack(X)
         self.clf.fit(X, y)
         return self
 

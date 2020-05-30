@@ -19,3 +19,6 @@ Datasets
    Intelligence Squared Debates Corpus <iq2.rst>
    Friends Corpus <friends.rst>
    Switchboard Dialog Act Corpus <switchboard.rst>
+   Stanford Politeness Corpus (Wikipedia) <wiki_politeness.rst>
+   Stanford Politeness Corpus (Stack Exchange) <stack_politeness.rst>
+   Deception in Diplomacy Corpus <diplomacy.rst>
