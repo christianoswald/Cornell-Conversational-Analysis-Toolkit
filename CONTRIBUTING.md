@@ -26,7 +26,7 @@ Once you have created a Corpus representation of your dataset, follow these step
 * Include the following information in the issue: 
   * the name of the dataset
   * brief description
-  * the dataset details, i.e. User-, Utterance-, Conversation-, Corpus-level data and metadata (refer to [this](https://convokit.cornell.edu/documentation/chromium.html) for an example)
+  * the dataset details, i.e. Speaker-, Utterance-, Conversation-, Corpus-level data and metadata (refer to [this](https://convokit.cornell.edu/documentation/chromium.html) for an example)
   * licensing information
   * publication to be cited with the dataset (if any)
   * contact information (for acknowledgement purposes)
@@ -61,7 +61,7 @@ Please ensure that your contributions adhere to the existing coding style used t
 Please ensure that all contributions have been tested for integration with existing ConvoKit code. This is particularly pertinent for contributions that make changes to existing functions or modules. Unit tests will run automatically on Github when a pull request is opened, and may be run locally with
 
 ```
-cd tests/ && python run_all_tests.py
+cd convokit/tests/ && python run_all_tests.py
 ```
 
 after installing `pip install -r requirements.txt` and `pip install .` from the project directory.

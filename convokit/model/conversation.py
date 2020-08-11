@@ -2,13 +2,15 @@ from typing import Dict, List, Callable, Generator, Optional
 from .utterance import Utterance
 from .speaker import Speaker
 from convokit.util import deprecation, warn
-from .corpusObject import CorpusObject
+from .corpusComponent import CorpusComponent
 from collections import defaultdict
 from .utteranceNode import UtteranceNode
+from .corpusUtil import *
 
-class Conversation(CorpusObject):
-    """Represents a discrete subset of utterances in the dataset, connected by a
-    reply-to chain.
+
+class Conversation(CorpusComponent):
+    """
+    Represents a discrete subset of utterances in the dataset, connected by a reply-to chain.
 
     :param owner: The Corpus that this Conversation belongs to
     :param id: The unique ID of this Conversation
@@ -41,10 +43,8 @@ class Conversation(CorpusObject):
 
         :return: a list of IDs of Utterances in the Conversation
         """
-        # we construct a new list instead of returning self._utterance_ids in
-        # order to prevent the speaker from accidentally modifying the internal
-        # ID list (since lists are mutable)
-        return [ut_id for ut_id in self._utterance_ids]
+        # pass a copy of the list
+        return self._utterance_ids[:]
 
     def get_utterance(self, ut_id: str) -> Utterance:
         """Looks up the Utterance associated with the given ID. Raises a
@@ -56,16 +56,33 @@ class Conversation(CorpusObject):
         # any Utterances
         return self._owner.get_utterance(ut_id)
 
-    def iter_utterances(self, selector: Callable[[Utterance], bool] = lambda utt: True) -> Generator[Utterance, None, None]:
-        """Generator allowing iteration over all utterances in the Conversation.
-        Provides no ordering guarantees.
+    def iter_utterances(self, selector: Callable[[Utterance], bool] = lambda utt: True) -> \
+            Generator[Utterance, None, None]:
+        """
+        Get utterances in the Corpus, with an optional selector that filters for Utterances that should be included.
 
-        :return: Generator that produces Utterances
+        :param selector: a (lambda) function that takes an Utterance and returns True or False (i.e. include / exclude).
+			By default, the selector includes all Utterances in the Conversation.
+		:return: a generator of Utterances
         """
         for ut_id in self._utterance_ids:
             utt = self._owner.get_utterance(ut_id)
             if selector(utt):
                 yield utt
+
+    def get_utterances_dataframe(self, selector: Callable[[Utterance], bool] = lambda utt: True,
+                                 exclude_meta: bool = False):
+        """
+        Get a DataFrame of the Utterances in the Conversation with fields and metadata attributes.
+		Set an optional selector that filters for Utterances that should be included.
+		Edits to the DataFrame do not change the corpus in any way.
+
+        :param selector: a (lambda) function that takes an Utterance and returns True or False (i.e. include / exclude).
+			By default, the selector includes all Utterances in the Conversation.
+        :param exclude_meta: whether to exclude metadata
+        :return: a pandas DataFrame
+        """
+        return get_utterances_dataframe(self, selector, exclude_meta)
 
     def get_usernames(self) -> List[str]:
         """Produces a list of names of all speakers in the Conversation, which can
@@ -85,9 +102,9 @@ class Conversation(CorpusObject):
         return list(self._speaker_ids)
 
     def get_speaker_ids(self) -> List[str]:
-        """Produces a list of ids of all speakers in the Conversation, which can
-        be used in calls to get_speaker() to retrieve specific speakers. Provides no
-        ordering guarantees for the list.
+        """
+        Produces a list of ids of all speakers in the Conversation, which can be used in calls to get_speaker()
+        to retrieve specific speakers. Provides no ordering guarantees for the list.
 
         :return: a list of speaker ids
         """
@@ -96,7 +113,7 @@ class Conversation(CorpusObject):
             self._speaker_ids = set()
             for ut_id in self._utterance_ids:
                 ut = self._owner.get_utterance(ut_id)
-                self._speaker_ids.add(ut.speaker.name)
+                self._speaker_ids.add(ut.speaker.id)
         return list(self._speaker_ids)
 
     def get_speaker(self, speaker_id: str) -> Speaker:
@@ -116,10 +133,12 @@ class Conversation(CorpusObject):
 
     def iter_speakers(self, selector: Callable[[Speaker], bool] = lambda speaker: True) -> Generator[Speaker, None, None]:
         """
-        Generator allowing iteration over all speakers in the Conversation.
-        Provides no ordering guarantees.
+        Get Speakers that have participated in the Conversation, with an optional selector that filters for Speakers
+        that should be included.
 
-        :return: Generator that produces Speakers.
+		:param selector: a (lambda) function that takes a Speaker and returns True or False (i.e. include / exclude).
+			By default, the selector includes all Speakers in the Conversation.
+		:return: a generator of Speakers
         """
         if self._speaker_ids is None:
             # first call to get_ids or iter_speakers; precompute cached list of speaker ids
@@ -132,9 +151,32 @@ class Conversation(CorpusObject):
             if selector(speaker):
                 yield speaker
 
+    def get_speakers_dataframe(self, selector: Optional[Callable[[Speaker], bool]] = lambda utt: True,
+                               exclude_meta: bool = False):
+        """
+        Get a DataFrame of the Speakers that have participated in the Conversation with fields and metadata attributes,
+        with an optional selector that filters Speakers that should be included.
+        Edits to the DataFrame do not change the corpus in any way.
+
+		:param exclude_meta: whether to exclude metadata
+		:param selector: selector: a (lambda) function that takes a Speaker and returns True or False
+			(i.e. include / exclude). By default, the selector includes all Speakers in the Conversation.
+		:return: a pandas DataFrame
+		"""
+        return get_speakers_dataframe(self, selector, exclude_meta)
+
     def iter_users(self, selector=lambda speaker: True):
         deprecation("iter_users()", "iter_speakers()")
         return self.iter_speakers(selector)
+
+    def print_conversation_stats(self):
+        """
+        Helper function for printing the number of Utterances and Spekaers in the Conversation.
+
+        :return: None (prints output)
+        """
+        print("Number of Utterances: {}".format(len(list(self.iter_utterances()))))
+        print("Number of Speakers: {}".format(len(list(self.iter_speakers()))))
 
     def get_chronological_speaker_list(self, selector: Callable[[Speaker], bool] = lambda speaker: True):
         """
@@ -143,10 +185,19 @@ class Conversation(CorpusObject):
         :param selector: (lambda) function for which speakers should be included; all speakers are included by default
         :return: list of speakers for each chronological utterance
         """
-        chrono_utts = sorted(list(self.iter_utterances()), key=lambda utt: utt.timestamp)
-        return [utt.speaker for utt in chrono_utts if selector(utt.speaker)]
+        try:
+            chrono_utts = sorted(list(self.iter_utterances()), key=lambda utt: utt.timestamp)
+            return [utt.speaker for utt in chrono_utts if selector(utt.speaker)]
+        except TypeError as e:
+            raise ValueError(str(e) + "\nUtterance timestamps may not have been set correctly.")
 
-    def check_integrity(self, verbose=True):
+    def check_integrity(self, verbose: bool = True) -> bool:
+        """
+        Check the integrity of this Conversation; i.e. do the constituent utterances form a complete reply-to chain?
+
+        :param verbose: whether to print errors indicating the problems with the Conversation
+        :return: True if the conversation structure is complete else False
+        """
         if verbose: print("Checking reply-to chain of Conversation", self.id)
         utt_reply_tos = {utt.id: utt.reply_to for utt in self.iter_utterances()}
         target_utt_ids = set(list(utt_reply_tos.values()))
@@ -173,6 +224,11 @@ class Conversation(CorpusObject):
 
         if utts_replying_to_none > 1:
             if verbose: warn("ERROR: Found more than one Utterance replying to None.")
+            return False
+
+        circular = [utt_id for utt_id, utt_reply_to in utt_reply_tos.items() if utt_id == utt_reply_to]
+        if len(circular) > 0:
+            if verbose: warn("ERROR: Found utterances with .reply_to pointing to themselves: {}".format(circular))
             return False
 
         if verbose: print("No issues found.\n")
@@ -237,6 +293,24 @@ class Conversation(CorpusObject):
             if utt_node.utt.id == root_utt_id:
                 return utt_node
 
+    def get_longest_paths(self) -> List[List[Utterance]]:
+        """
+        Finds the Utterances form the longest path (i.e. root to leaf) in the Conversation tree.
+        If there are multiple paths with tied lengths, returns all of them as a list of lists. If only one such path
+        exists, a list containing a single list of Utterances is returned.
+
+        :return: a list of lists of Utterances
+        """
+        if self.tree is None:
+            self.initialize_tree_structure()
+            if self.tree is None:
+                raise ValueError("Failed to traverse because Conversation reply-to chain does not form a valid tree.")
+
+        paths = self.get_root_to_leaf_paths()
+        max_len = max(len(path) for path in paths)
+
+        return [p for p in paths if len(p) == max_len]
+
     def _print_convo_helper(self, root: str, indent: int, reply_to_dict: Dict[str, str],
                             utt_info_func: Callable[[Utterance], str],
                             limit=None) -> None:
@@ -254,12 +328,14 @@ class Conversation(CorpusObject):
 
     def print_conversation_structure(self, utt_info_func: Callable[[Utterance], str] = lambda utt: utt.speaker.id, limit: int = None) -> None:
         """
-        Prints an indented representation of utterances in the Conversation with conversation reply-to structure determining the indented level. The details of each utterance to be printed can be configured.
+        Prints an indented representation of utterances in the Conversation with conversation reply-to structure
+        determining the indented level. The details of each utterance to be printed can be configured.
 
-        If limit is set to a value other than None, this will annotate utterances with an 'order' metadata indicating their temporal order in the conversation, where the first utterance in the conversation is annotated with 1.
+        If limit is set to a value other than None, this will annotate utterances with an 'order' metadata indicating
+        their temporal order in the conversation, where the first utterance in the conversation is annotated with 1.
 
         :param utt_info_func: callable function taking an utterance as input and returning a string of the desired
-                              utterance information. By default, this is a lambda function returning the utterance's speaker's id
+            utterance information. By default, this is a lambda function returning the utterance's speaker's id
         :param limit: maximum number of utterances to print out. if k, this includes the first k utterances.
         :return: None. Prints to stdout.
         """
@@ -278,6 +354,19 @@ class Conversation(CorpusObject):
         self._print_convo_helper(root=root_utt_id, indent=0, reply_to_dict=reply_to_dict,
                                  utt_info_func=utt_info_func, limit=limit)
 
+    def get_utterances_dataframe(self, selector=lambda utt: True, exclude_meta: bool = False):
+        """
+		Get a DataFrame of the Utterances in the COnversation with fields and metadata attributes.
+		Set an optional selector that filters Utterances that should be included.
+		Edits to the DataFrame do not change the corpus in any way.
+
+		:param exclude_meta: whether to exclude metadata
+		:param selector: a (lambda) function that takes a Utterance and returns True or False (i.e. include / exclude).
+			By default, the selector includes all Utterances in the Conversation.
+		:return: a pandas DataFrame
+		"""
+        return get_utterances_dataframe(self, selector, exclude_meta)
+
     def get_chronological_utterance_list(self, selector: Callable[[Utterance], bool] = lambda utt: True):
         """
         Get the utterances in the conversation sorted in increasing order of timestamp
@@ -285,7 +374,10 @@ class Conversation(CorpusObject):
         :param selector: function for which utterances should be included; all utterances are included by default
         :return: list of utterances, sorted by timestamp
         """
-        return sorted([utt for utt in self.iter_utterances(selector)], key=lambda utt: utt.timestamp)
+        try:
+            return sorted([utt for utt in self.iter_utterances(selector)], key=lambda utt: utt.timestamp)
+        except TypeError as e:
+            raise ValueError(str(e) + "\nUtterance timestamps may not have been set correctly.")
 
     def _get_path_from_leaf_to_root(self, leaf_utt: Utterance, root_utt: Utterance) -> List[Utterance]:
         """

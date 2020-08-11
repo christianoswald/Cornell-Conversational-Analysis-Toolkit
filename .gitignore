@@ -34,3 +34,6 @@ venv-triadmotif/
 *.tar
 *.DS_Store
 *.xlsx
+*.csv
+*.tsv
+!/doc/source/img/*
