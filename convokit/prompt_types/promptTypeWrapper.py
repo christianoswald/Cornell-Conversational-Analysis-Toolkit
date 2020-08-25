@@ -159,6 +159,21 @@ class PromptTypeWrapper(Transformer):
 		if self.use_motifs:
 			self.pipe.named_steps['pm_model'].load_model(os.path.join(model_dir, 'pm_model'))
 		self.pipe.named_steps['pt_model'].load_model(os.path.join(model_dir, 'pt_model'), type_keys=type_keys)
+
+	def get_models(self, type_keys='default'):
+		'''
+		Returns the model:
+			* pm_model: PhrasingMotifs model (if applicable, i.e., use_motifs=True)
+			* pt_model: PromptTypes model
+
+		:param type_keys: which numbers of prompt types to return corresponding PromptTypes model for 
+		:return: model
+		'''
+		to_return = {}
+		if self.use_motifs:
+			to_return['pm_model'] = self.pipe.named_steps['pm_model'].get_model()
+		to_return['pt_model'] = self.pipe.named_steps['pt_model'].get_model(type_keys=type_keys)
+		return to_return
 	
 	def print_top_phrasings(self, k):
 		"""
