@@ -6,12 +6,12 @@ import datetime
 MaxUtterances = -1
 
 KeyId = "id"
-KeyUser = "speaker"
-KeyConvoRoot = "root"
+KeySpeaker = "speaker"
+KeyConvoRoot = "conversation_id"
 KeyReplyTo = "reply-to"
 KeyTimestamp = "timestamp"
 KeyText = "text"
-KeyUserInfo = "meta"
+KeySpeakerInfo = "meta"
 
 genders = {}
 edit_counts = {}
@@ -70,11 +70,11 @@ with open("wikipedia.talkpages.conversations.dat", "r", encoding="utf-8") as f:
 
                 d = {
                     KeyId: fields[0],
-                    KeyUser: user,
+                    KeySpeaker: user,
                     KeyConvoRoot: fields[3],
                     KeyTimestamp: timestamp,
                     KeyText: fields[7],
-                    KeyUserInfo: {
+                    KeySpeakerInfo: {
                         "is-admin": is_admin
                     }
                 }
@@ -93,11 +93,11 @@ with open("wikipedia.talkpages.conversations.dat", "r", encoding="utf-8") as f:
 #udict = {u["id"]: u for u in utterances}
 #for i, u in enumerate(utterances):
 #    if KeyReplyTo in u:
-#        target = udict[u[KeyReplyTo]][KeyUser]
-#        #u[KeyConvoId] = u[KeyUser] + "->" + (
+#        target = udict[u[KeyReplyTo]][KeySpeaker]
+#        #u[KeyConvoId] = u[KeySpeaker] + "->" + (
 #        #    "{admin}" if target.endswith("{admin}") else "{nonadmin}")  # target groups
 #        #u[KeyConvoId] = target  # target groups -- experimental
-#        u[KeyConvoId] = u[KeyUser]  # speaker groups
+#        u[KeyConvoId] = u[KeySpeaker]  # speaker groups
 #        utterances[i] = u
 #    else:
 #        del utterances[i][KeyConvoId]

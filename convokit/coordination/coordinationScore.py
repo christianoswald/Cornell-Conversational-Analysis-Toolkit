@@ -26,7 +26,9 @@ class CoordinationScore(dict):
     scores, the keys are tuples (speaker, target).
 
     There are also helper functions for filtering scores or getting aggregate
-    scores:
+    scores (though these can be more conveniently accessed through
+    Coordination's `summarize()` method, using the `summary_report=True`
+    option).
     """
     def scores_for_marker(self, marker: str) -> Dict[Union[Speaker, Hashable], float]:
         """Return a dictionary from speakers to their scores for just the given

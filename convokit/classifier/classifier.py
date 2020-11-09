@@ -1,6 +1,9 @@
 from sklearn.model_selection import train_test_split, cross_val_score, KFold
 from sklearn.metrics import confusion_matrix, classification_report
-from sklearn import svm
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
 from convokit.classifier.util import *
 from convokit import Transformer, CorpusComponent
 from convokit.util import deprecation
@@ -17,7 +20,7 @@ class Classifier(Transformer):
         Each feature used should have a numeric/boolean type.
     :param labeller: a (lambda) function that takes a Corpus object and returns True (y=1) or False (y=0)
         - i.e. labeller defines the y value of the object for fitting
-    :param clf: optional sklearn classifier model, an SVM with linear kernel will be initialized by default
+    :param clf: optional sklearn classifier model. By default, clf is a Pipeline with StandardScaler and LogisticRegression.
     :param clf_attribute_name: the metadata attribute name to store the classifier prediction value under; default: "prediction"
     :param clf_prob_attribute_name: the metadata attribute name to store the classifier prediction score under; default: "pred_score"
 
@@ -30,8 +33,11 @@ class Classifier(Transformer):
         self.pred_feats = pred_feats
         self.labeller = labeller
         self.obj_type = obj_type
-
-        self.clf = svm.SVC(C=0.02, kernel='linear', probability=True) if clf is None else clf
+        if clf is None:
+            clf = Pipeline([("standardScaler", StandardScaler(with_mean=False)),
+                            ("logreg", LogisticRegression(solver='liblinear'))])
+            print("Initialized default classification model (standard scaled logistic regression).")
+        self.clf = clf
         self.clf_attribute_name = clf_attribute_name if clf_feat_name is None else clf_feat_name
         self.clf_prob_attribute_name = clf_prob_attribute_name if clf_prob_feat_name is None else clf_prob_feat_name
 
@@ -187,7 +193,7 @@ class Classifier(Transformer):
     #     return
     def evaluate_with_cv(self, corpus: Corpus = None,
                          objs: List[CorpusComponent] = None,
-                         cv=KFold(n_splits=5),
+                         cv=KFold(n_splits=5, shuffle=True),
                          selector: Callable[[CorpusComponent], bool] = lambda x: True
                          ):
         """

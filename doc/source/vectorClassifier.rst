@@ -6,3 +6,4 @@ Example usage: `bag-of-words classification <https://github.com/CornellNLP/Corne
 
 .. automodule:: convokit.classifier.vectorClassifier
     :members:
+    :inherited-members:

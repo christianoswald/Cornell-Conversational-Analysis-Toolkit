@@ -133,7 +133,7 @@ class PromptTypeWrapper(Transformer):
 			utterance.meta['is_question'] = True
 		return self.pipe.transform_utterance(utterance)        
 	
-	def dump_models(self, model_dir, type_keys='default'):
+	def dump_model(self, model_dir, type_keys='default'):
 		"""
 			Writes the `PhrasingMotifs` (if applicable) and `PromptTypes` models to disk. 
 
@@ -148,7 +148,7 @@ class PromptTypeWrapper(Transformer):
 			self.pipe.named_steps['pm_model'].dump_model(os.path.join(model_dir, 'pm_model'))
 		self.pipe.named_steps['pt_model'].dump_model(os.path.join(model_dir, 'pt_model'), type_keys=type_keys)
 	
-	def load_models(self, model_dir, type_keys='default'):
+	def load_model(self, model_dir, type_keys='default'):
 		"""
 			Reads the `PhrasingMotifs` (if applicable) and `PromptTypes` models from disk. 
 
@@ -160,7 +160,7 @@ class PromptTypeWrapper(Transformer):
 			self.pipe.named_steps['pm_model'].load_model(os.path.join(model_dir, 'pm_model'))
 		self.pipe.named_steps['pt_model'].load_model(os.path.join(model_dir, 'pt_model'), type_keys=type_keys)
 
-	def get_models(self, type_keys='default'):
+	def get_model(self, type_keys='default'):
 		'''
 		Returns the model:
 			* pm_model: PhrasingMotifs model (if applicable, i.e., use_motifs=True)

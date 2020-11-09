@@ -1,7 +1,7 @@
 Model
 ============
 
-These are the classes that comprise a ConvoKit corpus:
+These are the classes that comprise a ConvoKit corpus.
 
 .. toctree::
    :maxdepth: 2
@@ -10,4 +10,5 @@ These are the classes that comprise a ConvoKit corpus:
    Utterance <utterance.rst>
    Conversation <conversation.rst>
    Corpus <corpus.rst>
+   ConvoKitMatrix <convokitmatrix.rst>
    UtteranceNode <utteranceNode.rst>

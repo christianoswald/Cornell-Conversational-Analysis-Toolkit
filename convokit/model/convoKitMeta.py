@@ -17,26 +17,30 @@ class ConvoKitMeta(MutableMapping, dict):
     def __getitem__(self, item):
         return dict.__getitem__(self, item)
 
+    @staticmethod
+    def _check_type_and_update_index(index, obj_type, key, value):
+        if not isinstance(value, type(None)): # do nothing to index if value is None
+            if key not in index.indices[obj_type]:
+                type_ = _optimized_type_check(value)
+                index.update_index(obj_type, key=key, class_type=type_)
+            else:
+                # entry exists
+                if index.get_index(obj_type)[key] != ["bin"]: # if "bin" do no further checks
+                    if str(type(value)) not in index.get_index(obj_type)[key]:
+                        new_type = _optimized_type_check(value)
+
+                        if new_type == "bin":
+                            index.set_index(obj_type, key, "bin")
+                        else:
+                            index.update_index(obj_type, key, new_type)
+
     def __setitem__(self, key, value):
         if not isinstance(key, str):
             warn("Metadata attribute keys must be strings. Input key has been casted to a string.")
             key = str(key)
 
         if self.index.type_check:
-            if not isinstance(value, type(None)): # do nothing to index if value is None
-                if key not in self.index.indices[self.obj_type]:
-                    type_ = _optimized_type_check(value)
-                    self.index.update_index(self.obj_type, key=key, class_type=type_)
-                else:
-                    # entry exists
-                    if self.index.get_index(self.obj_type)[key] != ["bin"]: # if "bin" do no further checks
-                        if str(type(value)) not in self.index.get_index(self.obj_type)[key]:
-                            new_type = _optimized_type_check(value)
-
-                            if new_type == "bin":
-                                self.index.set_index(self.obj_type, key, "bin")
-                            else:
-                                self.index.update_index(self.obj_type, key, new_type)
+            ConvoKitMeta._check_type_and_update_index(self.index, self.obj_type, key, value)
         dict.__setitem__(self, key, value)
 
     def __delitem__(self, key):

@@ -253,6 +253,7 @@ def corpus_version(filename: str) -> int:
         d = json.load(f)
         return int(d["version"])
 
+
 # retrieve grouping and completes the download link for subreddit
 def get_subreddit_info(subreddit_name: str) -> str:
 

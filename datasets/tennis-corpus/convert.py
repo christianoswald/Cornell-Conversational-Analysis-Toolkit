@@ -24,7 +24,7 @@ import numpy as np
 # Keys in new full.json
 ID = "id" # equal to question_text_idx if current utterance is a question
         # equal to answer_text_idx if current utterance is an answer
-ROOT = "root" # this will always be equal to question_text_idx
+ROOT = "conversation_id" # this will always be equal to question_text_idx
 REPLY_TO = "reply-to" # non existant if this utterance is a question,
                     # equal to question_text_idx if this is an answer
 USER = "speaker" # equal to "REPORTER" if current utterance is a question

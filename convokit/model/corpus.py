@@ -532,7 +532,7 @@ class Corpus:
 
         The subtrees denoted by these utterance ids should be distinct and should not overlap, otherwise there may be unexpected behavior.
 
-        Vectors are not preserved.
+        Vectors are not preserved. The original Corpus will be mutated.
 
         :param new_convo_roots: List of utterance ids to use as conversation ids
         :param preserve_corpus_meta: set as True to copy original Corpus metadata to new Corpus
@@ -594,20 +594,17 @@ class Corpus:
         """
         Get all directed speaking pairs (a, b) of speakers such that a replies to b at least once in the dataset.
 
-        :param selector: optional function that takes in
-            a Speaker and a replied-to Speaker and returns True to include
+        :param selector: optional function that takes in a Speaker and a replied-to Speaker and returns True to include
             the pair in the result, or False otherwise.
-        :param speaker_ids_only: if True, return just pairs of
-            speaker names rather than speaker objects.
+        :param speaker_ids_only: if True, return just pairs of speaker names rather than speaker objects.
         :type speaker_ids_only: bool
 
-        :return: Set containing all speaking pairs selected by the selector
-            function, or all speaking pairs in the dataset if no selector
-            function was used.
+        :return: Set containing all speaking pairs selected by the selector function, or all speaking pairs in the
+            dataset if no selector function was used.
         """
         pairs = set()
         for utt2 in self.iter_utterances():
-            if utt2.speaker is not None and utt2.reply_to is not None and utt2.reply_to in self.utterances:
+            if utt2.speaker is not None and utt2.reply_to is not None and self.has_utterance(utt2.reply_to):
                 utt1 = self.get_utterance(utt2.reply_to)
                 if utt1.speaker is not None:
                     if selector(utt2.speaker, utt1.speaker):
@@ -615,29 +612,29 @@ class Corpus:
                                   speaker_ids_only else (utt2.speaker, utt1.speaker))
         return pairs
 
-    def pairwise_exchanges(self, selector: Optional[Callable[[Speaker, Speaker], bool]] = None,
-                           speaker_names_only: bool = False) -> Dict[Tuple, List[Utterance]]:
+    def directed_pairwise_exchanges(self, selector: Optional[Callable[[Speaker, Speaker], bool]] = lambda speaker1, speaker2: True,
+                                    speaker_ids_only: bool = False) -> Dict[Tuple, List[Utterance]]:
         """
         Get all directed pairwise exchanges in the dataset.
 
-        :param selector: optional function that takes in a
-            speaker speaker and a replied-to speaker and returns True to include
-            the pair in the result, or False otherwise.
-        :param speaker_names_only: if True, index conversations
-            by speaker names rather than speaker objects.
-        :type speaker_names_only: bool
+        :param selector: optional function that takes in a speaking speaker and a replied-to speaker and 
+            returns True to include the pair in the result, or False otherwise.
+        :param speaker_ids_only: if True, index conversations
+            by speaker ids rather than Speaker objects.
+        :type speaker_ids_only: bool
 
         :return: Dictionary mapping (speaker, target) tuples to a list of
             utterances given by the speaker in reply to the target.
         """
         pairs = defaultdict(list)
-        for u2 in self.utterances.values():
+        for u2 in self.iter_utterances():
             if u2.speaker is not None and u2.reply_to is not None:
-                u1 = self.utterances[u2.reply_to]
+                u1 = self.get_utterance(u2.reply_to)
                 if u1.speaker is not None:
-                    if selector is None or selector(u2.speaker, u1.speaker):
-                        key = (u2.speaker.id, u1.speaker.id) if speaker_names_only else (u2.speaker, u1.speaker)
+                    if selector(u2.speaker, u1.speaker):
+                        key = (u2.speaker.id, u1.speaker.id) if speaker_ids_only else (u2.speaker, u1.speaker)
                         pairs[key].append(u2)
+
         return pairs
 
     @staticmethod
@@ -745,45 +742,33 @@ class Corpus:
                              "Taking the latest one found".format(speaker, repr(meta_key)))
                 speaker.meta[meta_key] = meta_val
 
-    def _reinitialize_index_helper(self, new_index, old_index, obj_type):
+    def _reinitialize_index_helper(self, new_index, obj_type):
         """
         Helper for reinitializing the index of the different Corpus object types
         :param new_index: new ConvoKitIndex object
-        :param old_index: original ConvoKitIndex object
         :param obj_type: utterance, speaker, or conversation
         :return: None (mutates new_index)
         """
-        new_obj_index = new_index.indices[obj_type]
-        old_obj_index = old_index.indices[obj_type]
-
         for obj in self.iter_objs(obj_type):
             for key, value in obj.meta.items():
-                if key in new_obj_index:
-                    if new_obj_index[key] is None and value is not None:
-                        new_obj_index[key] = str(type(value))
-                else:
-                    if key in old_obj_index:
-                        new_obj_index[key] = old_obj_index[key]
-                    else:
-                        new_obj_index[key] = str(type(value))
+                ConvoKitMeta._check_type_and_update_index(new_index, obj_type, key, value)
+            obj.meta.index = new_index
 
     def reinitialize_index(self):
         """
-        Reinitialize the Corpus Index. Called during merge().
-        Re-uses original Index values where possible, and avoids having NoneType as the class-type for any key.
-        Checks metadata of all Corpus objects of each type to ensure that all keys are accounted for.
+        Reinitialize the Corpus Index from scratch.
 
-        :return: None (sets the .meta_index of Corpus)
+        :return: None (sets the .meta_index of Corpus and of the corpus component objects)
         """
         old_index = self.meta_index
         new_index = ConvoKitIndex(self)
 
-        self._reinitialize_index_helper(new_index, old_index, "utterance")
-        self._reinitialize_index_helper(new_index, old_index, "speaker")
-        self._reinitialize_index_helper(new_index, old_index, "conversation")
+        self._reinitialize_index_helper(new_index, "utterance")
+        self._reinitialize_index_helper(new_index, "speaker")
+        self._reinitialize_index_helper(new_index, "conversation")
 
         for key, value in self.meta.items():  # overall
-            new_index.overall_index[key] = str(type(value))
+            new_index.update_index('corpus', key, str(type(value)))
 
         new_index.version = old_index.version
         self.meta_index = new_index

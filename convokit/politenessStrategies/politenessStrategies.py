@@ -1,10 +1,12 @@
 from typing import Callable, Optional
 from convokit.model import Utterance
 from convokit.politeness_api.features.politeness_strategies import get_politeness_strategy_features
-from convokit.text_processing import process_text
+from convokit.politeness_local.marker_extractor import get_local_politeness_strategy_features
+from convokit.text_processing.textParser import process_text
 from convokit.transformer import Transformer
 from convokit.model import Corpus
 import re
+import spacy
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,13 +18,18 @@ class PolitenessStrategies(Transformer):
     
     :param strategy_attribute_name: metadata attribute name to store politeness strategies features under during the `transform()` step.  Default is 'politeness_strategies'. 
     :param marker_attribute_name: metadata attribute name to store politeness markers under during the `transform()` step. Default is 'politeness_markers'.
+    :param strategy_collection: collection of politeness strategies to extract. Default is "politeness_api". 
     :param verbose: whether or not to print status messages while computing features.
     """
 
-    def __init__(self, strategy_attribute_name="politeness_strategies", marker_attribute_name="politeness_markers", verbose: bool=False):
+    def __init__(self, strategy_attribute_name="politeness_strategies", marker_attribute_name="politeness_markers", strategy_collection="politeness_api", verbose: bool=False):
         self.strategy_attribute_name = strategy_attribute_name
         self.marker_attribute_name = marker_attribute_name
+        self.strategy_collection = strategy_collection
         self.verbose = verbose
+        
+        self.__extractor_lookup = {"politeness_api": get_politeness_strategy_features, \
+                                   "politeness_local": get_local_politeness_strategy_features}
 
     def transform(self, corpus: Corpus, selector: Optional[Callable[[Utterance], bool]] = lambda utt: True,
                   markers: bool = False):
@@ -36,12 +43,17 @@ class PolitenessStrategies(Transformer):
         :param selector: a (lambda) function that takes an Utterance and returns a bool indicating whether the utterance should be included in this annotation step.
         :param markers: whether or not to add politeness occurrence markers
         """
+    
         for utt in corpus.iter_utterances():
             if selector(utt):
+                
                 for i, sent in enumerate(utt.meta["parsed"]):
+                    
                     for p in sent["toks"]:
-                        p["tok"] = re.sub("[^a-z,.:;]", "", p["tok"].lower())
-                utt.meta[self.strategy_attribute_name], marks = get_politeness_strategy_features(utt)
+                        # p["tok"] = re.sub("[^a-z,.:;]", "", p["tok"].lower())
+                        p["tok"] = p['tok'].lower()
+    
+                utt.meta[self.strategy_attribute_name], marks = self.__extractor_lookup[self.strategy_collection](utt)
 
                 if markers:
                     utt.meta[self.marker_attribute_name] = marks
@@ -53,7 +65,6 @@ class PolitenessStrategies(Transformer):
     
     
     def transform_utterance(self, utterance, spacy_nlp = None, markers = False):
-        
         """
         Extract politeness strategies for raw string inputs. 
         
@@ -71,10 +82,11 @@ class PolitenessStrategies(Transformer):
         utterance.meta['parsed'] = process_text(utterance.text, spacy_nlp=spacy_nlp)
         
         for i, sent in enumerate(utterance.meta["parsed"]):
-            for p in sent["toks"]:
-                p["tok"] = re.sub("[^a-z,.:;]", "", p["tok"].lower())
             
-        utterance.meta[self.strategy_attribute_name], marks = get_politeness_strategy_features(utterance)
+            for p in sent["toks"]:
+                p["tok"] = p['tok'].lower()
+            
+        utterance.meta[self.strategy_attribute_name], marks = self.__extractor_lookup[self.strategy_collection](utterance)
 
         if markers:
             utterance.meta[self.marker_attribute_name] = marks

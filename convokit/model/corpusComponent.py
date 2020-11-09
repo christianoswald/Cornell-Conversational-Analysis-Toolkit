@@ -147,10 +147,14 @@ class CorpusComponent:
             if k in copy:
                 del copy[k]
 
-        for k in copy:
-            if k.startswith('_'):
-                copy[k[1:]] = copy[k]
-                del copy[k]
+        to_delete = [k for k in copy if k.startswith('_')]
+        to_add = {k[1:]: copy[k] for k in copy if k.startswith('_')}
+
+        for k in to_delete:
+            del copy[k]
+
+        copy.update(to_add)
+
         try:
             return self.obj_type.capitalize() + "(" + str(copy) + ")"
         except AttributeError: # for backwards compatibility when corpus objects are saved as binary data, e.g. wikiconv

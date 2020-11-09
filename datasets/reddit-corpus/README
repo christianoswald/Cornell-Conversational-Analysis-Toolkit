@@ -1,4 +1,0 @@
-Cornell Reddit Conversations v2.0 (released April 2019)
-
-The file is ~38MB and in .corpus format. It contains a representative sample of conversations from Reddit from 100 highly active subreddits (mostly chosen heuristically by highest file size in raw Reddit API format). We selected 100 comment threads from each subreddit consisting of at least 10 comments each. They are taken exclusively from September 2018.
-The dataset can be downloaded using the convokit.download() helper function: convokit.download("reddit-corpus-small"). Alternatively you can access it directly here: (http://zissou.infosci.cornell.edu/convokit/datasets/subreddit-corpus/reddit-corpus-small.corpus)
