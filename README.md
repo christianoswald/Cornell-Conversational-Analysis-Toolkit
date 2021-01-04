@@ -46,9 +46,7 @@ Example: [speaker conversation attributes and diversity example on ChangeMyView]
 A neural model for forecasting future outcomes of conversations (e.g., derailment into personal attacks) as they develop.  
 Available as an interactive notebook: [full version (fine-tuning + inference)](https://colab.research.google.com/drive/1SH4iMEHdoH4IovN-b9QOSK4kG4DhAwmb) or [inference-only](https://colab.research.google.com/drive/1GvICZN0VwZQSWw3pJaEVY-EQGoO-L5lH).
 
-### [Orientation (coming soon)](https://www.cs.cornell.edu/~cristian/Orientation.html)
 
-A method to quantify the degree to which an utterance is intended to direct the flow of the conversation forwards or backwards.
 
 ## Datasets
 ConvoKit ships with several datasets ready for use "out-of-the-box".
